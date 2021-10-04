@@ -1,3 +1,7 @@
+.gradle
+gradlew
+gradle/
+gradlew.bat
 neo4j-home
 *~
 \#*
