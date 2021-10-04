@@ -1,4 +1,4 @@
-package example;
+package com.softbridge.neo4j;
 
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;

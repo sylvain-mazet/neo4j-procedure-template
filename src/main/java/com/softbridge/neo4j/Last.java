@@ -1,4 +1,4 @@
-package example;
+package com.softbridge.neo4j;
 
 import org.neo4j.procedure.*;
 
