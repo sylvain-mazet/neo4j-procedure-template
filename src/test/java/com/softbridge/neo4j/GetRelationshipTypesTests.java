@@ -1,24 +1,24 @@
-package example;
+package com.softbridge.neo4j;
 
 import org.junit.jupiter.api.*;
 import org.neo4j.driver.*;
-import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
+
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class GetRelationshipTypesTests {
-
-    private static final Config driverConfig = Config.builder().withoutEncryption().build();
-    private static Driver driver;
-    private Neo4j embeddedDatabaseServer;
+public class GetRelationshipTypesTests extends TestsBase {
 
     @BeforeAll
     void initializeNeo4j() {
+        Path databasePath = getDatabasePath();
         this.embeddedDatabaseServer = Neo4jBuilders.newInProcessBuilder()
+                .withWorkingDir(databasePath)
                 .withDisabledServer()
                 .withProcedure(GetRelationshipTypes.class)
+
                 .build();
 
         this.driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI(), driverConfig);

@@ -12,7 +12,7 @@ import org.neo4j.procedure.UserFunction;
 public class Join {
 
     @UserFunction
-    @Description("example.join(['s1','s2',...], delimiter) - join the given strings with the given delimiter.")
+    @Description("com.softbridge.neo4j.join(['s1','s2',...], delimiter) - join the given strings with the given delimiter.")
     public String join(
             @Name("strings") List<String> strings,
             @Name(value = "delimiter", defaultValue = ",") String delimiter) {

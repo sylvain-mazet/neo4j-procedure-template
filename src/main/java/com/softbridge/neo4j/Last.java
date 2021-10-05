@@ -7,8 +7,8 @@ import org.neo4j.procedure.*;
  */
 public class Last {
 
-    @UserAggregationFunction("example.last")
-    @Description("example.last(value) - returns last non-null row")
+    @UserAggregationFunction
+    @Description("com.softbridge.neo4j.last(value) - returns last non-null row")
     public LastFunction last() {
         return new LastFunction();
     }
