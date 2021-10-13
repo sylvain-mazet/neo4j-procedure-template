@@ -1,6 +1,7 @@
 package com.softbridge.neo4j;
 
 //import org.junit.jupiter.api.*;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -11,31 +12,41 @@ import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.driver.*;
-import org.neo4j.driver.Record;
 import org.neo4j.graphdb.GraphDatabaseService;
-        import org.neo4j.harness.Neo4j;
+import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.kernel.impl.core.NodeEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 
-import java.io.*;
-        import java.nio.file.FileSystems;
-import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-        import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SpringBootTest(classes = TestsConfiguration.class)
 public class TraverseDemoTest extends TestsBase {
 
-    GraphDatabaseService graphDb;
+    final static Logger logger = LoggerFactory.getLogger(TraverseDemoTest.class);
+
+    @Autowired
+    ApplicationContext applicationContext;
+
+    @Autowired
+    EmbeddedServerLauncher serverLauncher;
+
+    Neo4j server;
+
+    GraphDatabaseService graphDbService;
 
     boolean useDatabaseServer = true;
-
-    public TraverseDemoTest() {
-    }
 
     @BeforeAll
     public void initializeNeo4j() throws IOException {
@@ -45,7 +56,7 @@ public class TraverseDemoTest extends TestsBase {
 
         Path databasePath = getDatabasePath();
 
-        StringBuffer sw = getDatabaseInitScript();
+        StringBuffer sw = getDatabaseInitScript("/movie.cypher");
 
         if (useDatabaseServer) {
             this.embeddedDatabaseServer = Neo4jBuilders.newInProcessBuilder()
@@ -62,14 +73,14 @@ public class TraverseDemoTest extends TestsBase {
                     .setConfig(BoltConnector.enabled, true)
                     .setConfig(HttpConnector.enabled, true)
                     .build();
-            graphDb = managementService.database(DEFAULT_DATABASE_NAME);
+            graphDbService = managementService.database(DEFAULT_DATABASE_NAME);
             registerShutdownHook(managementService);
 
-            graphDb.executeTransactionally("match (n) detach delete n;");
+            graphDbService.executeTransactionally("match (n) detach delete n;");
 
 
 
-            graphDb.executeTransactionally(sw.toString());
+            graphDbService.executeTransactionally(sw.toString());
         }
 
     }
@@ -100,11 +111,11 @@ public class TraverseDemoTest extends TestsBase {
             assertThat(coActorNames).containsAll(names);
 
         } else {
-            Object o = graphDb.executeTransactionally("match (keanu:Person {name:'Keanu Reeves'})\n" +
+            Object o = graphDbService.executeTransactionally("match (keanu:Person {name:'Keanu Reeves'})\n" +
                             "return keanu",
                     new HashMap<>(),
                     result -> {
-                        System.out.println(String.format("RESULTS :\n%s", result.resultAsString()));
+                        logger.info(String.format("RESULTS :\n%s", result.resultAsString()));
                         return true;
                     }
             );
@@ -112,7 +123,7 @@ public class TraverseDemoTest extends TestsBase {
             Set<String> columns = new HashSet<>();
             List<Map<String, String>> objects = new ArrayList<>();
 
-            graphDb.executeTransactionally("match (keanu:Person {name:'Keanu Reeves'})-[*1..2]-(coactors:Person)\n" +
+            graphDbService.executeTransactionally("match (keanu:Person {name:'Keanu Reeves'})-[*1..2]-(coactors:Person)\n" +
                             "with coactors.name as name order by name\n" +
                             "return distinct name",
                     new HashMap<>(),
@@ -134,26 +145,26 @@ public class TraverseDemoTest extends TestsBase {
                     }
             );
 
-            System.out.println(String.format("%d results", objects.size()));
+            logger.info(String.format("%d results", objects.size()));
 
             for (Map<String, String> object : objects) {
-                System.out.println("-------");
+                logger.info("-------");
                 for (Map.Entry<String, String> entry : object.entrySet()) {
-                    System.out.println(String.format("%s => %s", entry.getKey(), entry.getValue()));
+                    logger.info(String.format("%s => %s", entry.getKey(), entry.getValue()));
                 }
             }
-            graphDb.executeTransactionally("call travers.findCoActors('Keanu Reeves')",
+            graphDbService.executeTransactionally("call travers.findCoActors('Keanu Reeves')",
                     new HashMap<>(),
                     result1 -> {
                         while (result1.hasNext()) {
 
                             Map<String, Object> thisResult = result1.next();
 
-                            System.out.println("-------");
+                            logger.info("-------");
                             for (Map.Entry<String, Object> entry : thisResult.entrySet()) {
                                 Map<String, Object> objMap = ((NodeEntity) entry.getValue()).getAllProperties();
                                 for (String s : objMap.keySet()) {
-                                    System.out.println(String.format("%s => %s", s, objMap.get(s).toString()));
+                                    logger.info(String.format("%s => %s", s, objMap.get(s).toString()));
                                 }
                             }
 
